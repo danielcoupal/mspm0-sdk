@@ -76,21 +76,29 @@ class Tkinter_app:
         frame_logo = Frame(master)
         frame_logo.pack(side="bottom")
 
+        self.log_scrollbar = Scrollbar(frame_log)
+        self.textlog = Text(
+            frame_log, yscrollcommand=self.log_scrollbar.set, width=70, height=15, bg="white"
+        )
+
         self.fw_input_label = Label(frame_fw_input, text="Application firmware file:")
         self.fw_input_label.pack(side="left")
-        global input_name
-        input_name = StringVar()
-        self.fw_entry = Entry(frame_fw_input, width=50, textvariable=input_name)
+        global fw_path_var
+        fw_path_var = StringVar()
+        self.fw_entry = Entry(frame_fw_input, width=50, textvariable=fw_path_var)
+        self.fw_entry.insert(END, fw_loc)
         self.fw_entry.pack(side="left")
+        fw_path_var.set(fw_loc)
         self.fw_browse_button = Button(frame_fw_input, text="Choose .txt file", command=self.choose_app_file)
         self.fw_browse_button.pack(side="left")
 
         self.pw_input_label = Label(frame_pw_input, text="Password file:")
         self.pw_input_label.pack(side="left")
-        global input_pw
-        input_pw = StringVar()
-        self.pw_entry = Entry(frame_pw_input, width=50, textvariable=input_pw)
+        global pw_path_var
+        pw_path_var = StringVar()
+        self.pw_entry = Entry(frame_pw_input, width=50, textvariable=pw_path_var)
         self.pw_entry.pack(side="left")
+        pw_path_var.set(pw_loc)
         self.pw_browse_button = Button(frame_pw_input, text="Choose .txt file", command=self.choose_pw_file)
         self.pw_browse_button.pack(side="left")
 
@@ -106,6 +114,7 @@ class Tkinter_app:
         self.download_button_label = Label(frame_serial, text="(Download: Just support UART with XDS110)")
         self.download_button_label.pack()
 
+        self.xds110_LP()
         self.serial_spec_idx = IntVar()
         self.xds_lp_radio = Radiobutton(
             frame_serial,
@@ -124,11 +133,7 @@ class Tkinter_app:
         )
         self.xds_sa_radio.place(relx=0.7, rely=0.5)
 
-        self.log_scrollbar = Scrollbar(frame_log)
         self.log_scrollbar.pack(side=RIGHT, fill=Y)
-        self.textlog = Text(
-            frame_log, yscrollcommand=self.log_scrollbar.set, width=70, height=15, bg="white"
-        )
         self.log_scrollbar.config(command=self.textlog.yview)
         self.textlog.pack()
 
@@ -150,7 +155,7 @@ class Tkinter_app:
         self.path = os.getcwd()
 
     def xds110_LP(self):
-        self.serial_spec = SerialSpec(0, "XDS110 Class Application/User UART")
+        self.serial_spec = SerialSpec(self.textlog, 0, "XDS110 Class Application/User UART")
         self.textlog.config(state=NORMAL)
         self.textlog.insert(
             INSERT, "Changed the hardware bridge to XDS110 on Launchpad.\n", "normal"
@@ -158,7 +163,7 @@ class Tkinter_app:
         self.textlog.config(state=DISABLED)
 
     def xds110_S(self):
-        self.serial_spec = SerialSpec(1, "XDS110 Class Application/User UART")
+        self.serial_spec = SerialSpec(self.textlog, 1, "XDS110 Class Application/User UART")
         self.textlog.config(state=NORMAL)
         self.textlog.insert(
             INSERT, "Changed the hardware bridge to standalone XDS110.\n", "normal"
@@ -181,13 +186,15 @@ class Tkinter_app:
             initialdir="c:",
             filetypes=[("textfile", ".txt")],
         )
-        input_name.set(f)
+        fw_path_var.set(f)
+
+    def set_fw(self):
         self.textlog.config(state=NORMAL)
-        if f:
+        if os.path.exists(fw_path_var.get()):
             self.textlog.insert(
-                INSERT, "Choose a firmware file at:" + f + "\n", "normal"
+                INSERT, "Choose a firmware file at:" + fw_path_var.get() + "\n", "normal"
             )
-            self.firmwaredfile = file_d.get_firmware(f)
+            self.firmwaredfile = file_d.get_firmware(fw_path_var.get())
             self.firmware_pack = BSL_pack.firmware_pack(self.firmwaredfile)
         else:
             self.textlog.insert(
@@ -204,14 +211,16 @@ class Tkinter_app:
             initialdir="c:",
             filetypes=[("textfile", ".txt")],
         )
-        input_pw.set(f1)
+        pw_path_var.set(f1)
+
+    def set_password(self):
         self.textlog.config(state=NORMAL)
-        if f1:
+        if os.path.exists(pw_path_var.get()):
             self.textlog.insert(
-                INSERT, "Choose a password file at:" + f1 + "\n", "normal"
+                INSERT, "Choose a password file at:" + pw_path_var.get() + "\n", "normal"
             )
             self.passwordfile = b""
-            self.passwordfile = file_d.get_password(f1)
+            self.passwordfile = file_d.get_password(pw_path_var.get())
             if self.passwordfile == b"":
                 self.textlog.insert(
                     INSERT, "Error: Password format is not correct!\n", "error"
@@ -223,11 +232,9 @@ class Tkinter_app:
             self.textlog.insert(
                 INSERT, "Error: Please choose a password file.\n", "error"
             )
-
-        # else:
-        #     print(self.passwordfile)
         self.textlog.see(END)
         self.textlog.config(state=DISABLED)
+
     def download_thread(self):
         T = threading.Thread(target=self.download, args=())
         T.start()
@@ -235,6 +242,8 @@ class Tkinter_app:
     def download(self):
         self.textlog.config(state=NORMAL)
         self.download_button.config(state='disabled')
+        self.set_fw()
+        self.set_password()
         if self.passwordfile != b"" and self.firmwaredfile != "":
             find_flag = self.serial_spec.connect(UART_S)
             if find_flag:
@@ -436,8 +445,17 @@ class Tkinter_app:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="MSPM0 Bootloader GUI")
     parser.add_argument('--icon-root', type=str, default=".", help='Root directory for runtime files')
+    parser.add_argument('--fw-loc', type=str, help='Firmware file location')
+    parser.add_argument('--pw-loc', type=str, help='Password file location')
     args = parser.parse_args()
+
     icon_root = args.icon_root
+
+    if(os.path.exists(args.fw_loc)):
+        fw_loc = os.path.abspath(args.fw_loc)
+
+    if(os.path.exists(args.pw_loc)):
+        pw_loc = os.path.abspath(args.pw_loc)
 
     file_d = Get_files()
     BSL_pack = BSL_Pack()

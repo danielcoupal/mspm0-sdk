@@ -30,15 +30,18 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 '''
 
+from tkinter import INSERT
+
 import UART_send
 
 class SerialSpec():
-    def __init__(self, id_char, serial_desc: str):
-        self.id_char = id_char
+    def __init__(self, textlog, id, serial_desc: str):
+        self.textlog = textlog
+        self.id = id
         self.serial_desc = serial_desc # For when generic serial gets added. It will become a UART_S parameter.
 
     def connect(self, UART_S) -> str:
-        if self.xds_v.get() == "a":
+        if self.id == "a":
             try:
                 subprocess.run(
                     self.path
@@ -59,7 +62,7 @@ class SerialSpec():
                     "error",
                 )
         else:
-            if self.xds_v.get() == "b":
+            if self.id == "b":
                 subprocess.run(
                     self.path
                     + "/common/uscif/dbgjtag.exe -f @xds110 -Y power,supply=on,voltage=3.2",
@@ -80,14 +83,14 @@ class SerialSpec():
                     capture_output=True,
                     encoding='utf-8')
             else:
-                # print(self.xds_v.get())
+                # print(self.id)
                 self.textlog.insert(
                     INSERT, "No correct hardware bridge selected.\n", "error"
                 )
         return UART_S.find_MSP_COM()
 
     def on_connect(self):
-        if self.xds_v.get() == "a":
+        if self.id == "a":
             subprocess.run(
                 self.path
                 + "/common/uscif/dbgjtag.exe  -f @xds110 -Y gpiopins, config=0x1, write=0x0",
@@ -95,7 +98,7 @@ class SerialSpec():
                 capture_output=True,
                 encoding='utf-8')
         else:
-            if self.xds_v.get() == "b":
+            if self.id == "b":
                 subprocess.run(
                     self.path
                     + "/common/uscif/dbgjtag.exe -f @xds110 -Y gpiopins, config=0x3, write=0x01",
