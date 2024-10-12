@@ -30,20 +30,21 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 import argparse
-
+import os
+import platform
+import subprocess
+import threading
+import time
 import tkinter
+from subprocess import run
 from tkinter import *
 from tkinter.filedialog import *
-import platform
-from get_file import *
+
 from BSL_pack import *
-from UART_send import *
-import time
-import os
+from crc_dialog import *
+from get_file import *
 from txt_to_h import *
-import threading
-import subprocess
-from subprocess import run
+from UART_send import *
 
 icon_root = "."
 
@@ -61,7 +62,7 @@ class Tkinter_app:
         #        menufile.add_command(label='Create Linker Files', command=self.create_linker)
         menufile.add_command(label="TXT_to_H", command=txt_to_h_dialog.show)
         menufile.add_command(label="Update XDS110 firmware", command=self.update_xds110)
-        menufile.add_command(label="Get_CRC", command=self.CRC_h)
+        menufile.add_command(label="Get CRC", command=lambda: CRC_h(root))
         master["menu"] = menubar
 
         frame_fw_input = Frame(master)
@@ -499,180 +500,6 @@ class Tkinter_app:
         self.textlog.insert(INSERT, "XDS110 firmware update finished.\n", "pass")
         self.textlog.see(END)
         self.textlog.config(state=DISABLED)
-
-    def CRC_h(self):
-        sub_win2 = Toplevel(root)
-        sub_win2.title("Get CRC")
-        #        sub_win1.attributes("-topmost", True)
-        sub_win2.geometry("700x350+300+200")
-        sub_win2.grab_set()
-        frames_CRC_0 = Frame(sub_win2)
-        frames_CRC_0.pack(padx=50, pady=20, anchor=W)
-        frames_CRC_1 = Frame(sub_win2)
-        frames_CRC_1.pack(padx=50, anchor=W)
-        frames_CRC_3 = Frame(sub_win2)
-        frames_CRC_3.pack(pady=10)
-        frames_CRC_4 = Frame(sub_win2)
-        frames_CRC_4.pack()
-
-        self.labelss_CRC_0 = Label(frames_CRC_0, text="Choose a firmware .txt file")
-        self.labelss_CRC_0.pack(side="left")
-        global input_name_ss_CRC
-        input_name_ss_CRC = StringVar()
-        self.entryss_CRC = Entry(frames_CRC_0, width=50, textvariable=input_name_ss_CRC)
-        self.entryss_CRC.pack(side="left")
-        self.buttonss_CRC = Button(
-            frames_CRC_0, text="Choose .txt file", command=self.choosetxtfile_crc
-        )
-        self.buttonss_CRC.pack(side="left")
-
-        self.labelss3_CRC = Label(frames_CRC_1, text="CRC Start Address:")
-        self.labelss3_CRC.pack(side="left")
-        global out_crc_star
-        out_crc_star = StringVar()
-        out_crc_star = ""
-        self.entryss3_crc = Entry(frames_CRC_1, width=20)
-        self.entryss3_crc.pack(side="left")
-        self.entryss3_crc.delete(0, "end")
-        self.entryss3_crc.insert(INSERT, out_crc_star)
-        self.entryss3_crc["state"] = "readonly"
-
-        self.labelss1_CRC = Label(frames_CRC_1, text="CRC Length:")
-        self.labelss1_CRC.pack(side="left")
-        global out_crc_len
-        out_crc_len = StringVar()
-        out_crc_len = ""
-        self.entryss1_crc = Entry(frames_CRC_1, width=20)
-        self.entryss1_crc.pack(side="left")
-        self.entryss1_crc.delete(0, "end")
-        self.entryss1_crc.insert(INSERT, out_crc_len)
-        self.entryss1_crc["state"] = "readonly"
-
-        self.labelss2_CRC = Label(frames_CRC_1, text="CRC Result:")
-        self.labelss2_CRC.pack(side="left")
-        global out_crc_result
-        out_crc_result = StringVar()
-        out_crc_result = ""
-        self.entryss2_crc = Entry(frames_CRC_1, width=20)
-        self.entryss2_crc.pack(side="left")
-        self.entryss2_crc.delete(0, "end")
-        self.entryss2_crc.insert(INSERT, out_crc_result)
-        self.entryss2_crc["state"] = "readonly"
-
-        self.buttonss2_c = Button(frames_CRC_3, text="Generate", command=self.gen_crc)
-        self.buttonss2_c.pack()
-
-        self.s3_crc = Scrollbar(frames_CRC_4)
-        self.s3_crc.pack(side=RIGHT, fill=Y)
-        self.textlogsubs_crc = Text(
-            frames_CRC_4,
-            yscrollcommand=self.s3_crc.set,
-            width=70,
-            height=10,
-            bg="white",
-        )
-        self.s3_crc.config(command=self.textlogsubs_crc.yview)
-        self.textlogsubs_crc.pack()
-        self.textlogsubs_crc.tag_config("errors_", foreground="red")
-        self.textlogsubs_crc.tag_config("pass_s_", foreground="green")
-        self.textlogsubs_crc.insert(
-            INSERT, "This function is used for generate the CRC results.\n"
-        )
-        self.textlogsubs_crc.insert(
-            INSERT,
-            "Note: it just can calculate the CRC at first section that the contents under first @address\n",
-        )
-        self.textlogsubs_crc.config(state=DISABLED)
-
-    def gen_crc(self):
-        self.textlogsubs_crc.config(state=NORMAL)
-        input_names_crc = input_name_ss_CRC.get()
-        if input_names_crc:
-            self.textlogsubs_crc.insert(INSERT, "Generating...\n")
-            self.gen_crc_fun(input_names_crc)
-            self.textlogsubs_crc.insert(
-                INSERT, "-----Generate the CRC -----\n ", "pass_s_"
-            )
-        else:
-            self.textlogsubs_crc.insert(
-                INSERT, "Error: Please choose a .txt firmware.\n", "errors_"
-            )
-        self.textlogsubs_crc.see(END)
-        self.textlogsubs_crc.config(state=DISABLED)
-
-    def choosetxtfile_crc(self):
-        fs_c = askopenfilename(
-            title="Choose a firmware file",
-            initialdir="c:",
-            filetypes=[("textfile", ".txt")],
-        )
-        input_name_ss_CRC.set(fs_c)
-        self.textlogsubs_crc.config(state=NORMAL)
-        if fs_c:
-            self.textlogsubs_crc.insert(
-                INSERT, "Choose a firmware file at:" + fs_c + "\n", "normal"
-            )
-        else:
-            self.textlogsubs.insert(
-                INSERT, "Error: Please choose a firmware file.\n", "errors_"
-            )
-        self.textlogsubs_crc.see(END)
-        self.textlogsubs_crc.config(state=DISABLED)
-
-    def gen_crc_fun(self, file430):
-        data_array = []
-        flag = 0
-        sizecount = 0
-        bytes_buf = b""
-        bytes_buf1 = ""
-        with open(file430) as file_object:
-            lines = file_object.readlines()
-        for line in lines:
-            if line[0] == "@":
-                flag += 1
-                if flag == 1:
-                    line = line.rstrip()
-                    bytes_buf1 = "0x" + line[1:]
-                    # print(bytes_buf1)
-            else:
-                if flag == 1 and line[0] != "q":
-                    line2 = "0x" + line
-                    # 			print(isinstance(line, str))
-                    line2 = line.replace(" \n", "\n")
-                    line2 = line.replace(" ", " 0x")
-                    # 			print(line)
-                    sizecount += line2.count("0x")
-                    data_array2 = line2.split()
-                    # 			data_array2.pop()
-                    data_array += data_array2
-                    bytes_buf += bytes.fromhex(line)
-        checksum = self.crc32_(bytes_buf)
-        self.entryss3_crc["state"] = "normal"
-        self.entryss3_crc.delete(0, "end")
-        self.entryss3_crc.insert(INSERT, bytes_buf1)
-        self.entryss3_crc["state"] = "readonly"
-        self.entryss1_crc["state"] = "normal"
-        self.entryss1_crc.delete(0, "end")
-        self.entryss1_crc.insert(INSERT, hex(sizecount))
-        self.entryss1_crc["state"] = "readonly"
-        self.entryss2_crc["state"] = "normal"
-        self.entryss2_crc.delete(0, "end")
-        self.entryss2_crc.insert(INSERT, hex(checksum))
-        self.entryss2_crc["state"] = "readonly"
-        # print(hex(checksum))
-
-    def crc32_(self, data_B):
-        crc = 0xFFFFFFFF
-        crc32_POLY = 0xEDB88320
-        for b in data_B:
-            crc = crc ^ b
-            ii = 1
-            while ii <= 8:
-                mask = -(crc & 1)
-                crc = (crc >> 1) ^ (crc32_POLY & mask)
-                ii += 1
-        return crc
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="MSPM0 Bootloader GUI")

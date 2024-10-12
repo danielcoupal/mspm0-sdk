@@ -95,6 +95,8 @@ class TXT_to_h():
         )
         self.textlogsubs.config(state=DISABLED)
 
+        sub_win1.focus_set()
+
     def convert_fw(self):
         self.textlogsubs.config(state=NORMAL)
         input_names = input_name_ss.get()
