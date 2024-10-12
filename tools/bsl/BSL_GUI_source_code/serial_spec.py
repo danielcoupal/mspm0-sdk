@@ -35,12 +35,14 @@ from tkinter import INSERT
 import UART_send
 
 class SerialSpec():
+    """Defines unique behavior depending on debugger or other serial setup."""
     def __init__(self, textlog, id, serial_desc: str):
         self.textlog = textlog
         self.id = id
         self.serial_desc = serial_desc # For when generic serial gets added. It will become a UART_S parameter.
 
     def connect(self, UART_S) -> str:
+        """Connects to the serial port and configures the debugger if necessary."""
         if self.id == "a":
             try:
                 subprocess.run(
@@ -89,7 +91,8 @@ class SerialSpec():
                 )
         return UART_S.find_MSP_COM()
 
-    def on_connect(self):
+    def on_bsl_connect(self):
+        """Called after the BSL ACKS a 'connect' command."""
         if self.id == "a":
             subprocess.run(
                 self.path

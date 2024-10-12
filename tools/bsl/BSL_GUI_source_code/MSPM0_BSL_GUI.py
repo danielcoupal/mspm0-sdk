@@ -260,7 +260,7 @@ class Tkinter_app:
                 self.textlog.see(END)
                 UART_S.send_data(ser_port, self.connection_pack)
                 response_ = UART_S.read_data(ser_port, 1)
-                self.serial_spec.on_connect()
+                self.serial_spec.on_bsl_connect()
                 UART_S.send_data(ser_port, b"\xbb")
                 response01 = UART_S.read_data(ser_port, 1)
                 if response01 == "51":
