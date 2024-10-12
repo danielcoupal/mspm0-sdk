@@ -43,6 +43,7 @@ from tkinter.filedialog import *
 from BSL_pack import *
 from crc_dialog import *
 from get_file import *
+from serial_spec import SerialSpec
 from txt_to_h import *
 from UART_send import *
 
@@ -53,13 +54,10 @@ class Tkinter_app:
         self.passwordfile = b""
         self.count = 0
         self.firmwaredfile = ""
-        self.xds_v = tkinter.StringVar(None, "a")
-        # self.xds_r = tkinter.StringVar(None, '1')
+
         menubar = Menu(master, tearoff=0)
-        #        menubar.add_command(label='MoreOption')
         menufile = Menu(menubar, tearoff=0)
         menubar.add_cascade(label="MoreOption", menu=menufile)
-        #        menufile.add_command(label='Create Linker Files', command=self.create_linker)
         menufile.add_command(label="TXT_to_H", command=txt_to_h_dialog.show)
         menufile.add_command(label="Update XDS110 firmware", command=self.update_xds110)
         menufile.add_command(label="Get CRC", command=lambda: CRC_h(root))
@@ -108,27 +106,23 @@ class Tkinter_app:
         self.download_button_label = Label(frame_serial, text="(Download: Just support UART with XDS110)")
         self.download_button_label.pack()
 
+        self.serial_spec_idx = IntVar()
         self.xds_lp_radio = Radiobutton(
             frame_serial,
             text="XDS110 on Launchpad",
-            variable=self.xds_v,
-            value="a",
+            variable=self.serial_spec_idx,
+            value=0,
             command=self.xds110_LP,
         )
         self.xds_lp_radio.place(relx=0.7, rely=0)
         self.xds_sa_radio = Radiobutton(
             frame_serial,
             text="Standalone XDS110",
-            variable=self.xds_v,
-            value="b",
+            variable=self.serial_spec_idx,
+            value=1,
             command=self.xds110_S,
         )
         self.xds_sa_radio.place(relx=0.7, rely=0.5)
-
-        # self.rad_button3 = Radiobutton(frame3, text='BOOTRST', variable=self.xds_r, value='1', command=self.xds110_BR)
-        # self.rad_button3.place(relx=0.1,rely=0)
-        # self.rad_button4 = Radiobutton(frame3, text='POR', variable=self.xds_r, value='2', command=self.xds110_PR)
-        # self.rad_button4.place(relx=0.1,rely=0.5)
 
         self.log_scrollbar = Scrollbar(frame_log)
         self.log_scrollbar.pack(side=RIGHT, fill=Y)
@@ -139,8 +133,6 @@ class Tkinter_app:
         self.textlog.pack()
 
         self.textlog.insert(INSERT, "Default hardware is XDS110 on Launchpad.\n")
-        # self.textlog.insert(INSERT, 'Default reset type is boot reset.\n')
-        #        self.textlog.insert(INSERT, "Python version: "+platform.python_version() + '\n')
         self.textlog.tag_config("error", foreground="red")
         self.textlog.tag_config("pass", foreground="green")
         self.textlog.tag_config("normal", foreground="black")
@@ -158,6 +150,7 @@ class Tkinter_app:
         self.path = os.getcwd()
 
     def xds110_LP(self):
+        self.serial_spec = SerialSpec(0, "XDS110 Class Application/User UART")
         self.textlog.config(state=NORMAL)
         self.textlog.insert(
             INSERT, "Changed the hardware bridge to XDS110 on Launchpad.\n", "normal"
@@ -165,6 +158,7 @@ class Tkinter_app:
         self.textlog.config(state=DISABLED)
 
     def xds110_S(self):
+        self.serial_spec = SerialSpec(1, "XDS110 Class Application/User UART")
         self.textlog.config(state=NORMAL)
         self.textlog.insert(
             INSERT, "Changed the hardware bridge to standalone XDS110.\n", "normal"
@@ -237,57 +231,12 @@ class Tkinter_app:
     def download_thread(self):
         T = threading.Thread(target=self.download, args=())
         T.start()
+
     def download(self):
         self.textlog.config(state=NORMAL)
         self.download_button.config(state='disabled')
         if self.passwordfile != b"" and self.firmwaredfile != "":
-            if self.xds_v.get() == "a":
-                try:
-                    subprocess.run(
-                        self.path
-                        + "/common/uscif/dbgjtag.exe  -f @xds110 -Y gpiopins, config=0x1, write=0x1",
-                        shell=True,
-                        capture_output=True,
-                        encoding='utf-8')
-                    subprocess.run(
-                        self.path
-                        + "/common/uscif/xds110/xds110reset.exe -d 1400",
-                        shell=True,
-                        capture_output=True,
-                        encoding='utf-8')
-                except:
-                    self.textlog.insert(
-                        INSERT,
-                        "Error: please make sure the folder path not include !\n",
-                        "error",
-                    )
-            else:
-                if self.xds_v.get() == "b":
-                    subprocess.run(
-                        self.path
-                        + "/common/uscif/dbgjtag.exe -f @xds110 -Y power,supply=on,voltage=3.2",
-                        shell=True,
-                        capture_output=True,
-                        encoding='utf-8')
-                    subprocess.run(
-                        self.path
-                        + "/common/uscif/dbgjtag.exe -f @xds110 -Y gpiopins, config=0x3, write=0x02",
-                        shell=True,
-                        capture_output=True,
-                        encoding='utf-8')
-                    time.sleep(1.4)
-                    subprocess.run(
-                        self.path
-                        + "/common/uscif/dbgjtag.exe -f @xds110 -Y gpiopins, config=0x3, write=0x03",
-                        shell=True,
-                        capture_output=True,
-                        encoding='utf-8')
-                else:
-                    # print(self.xds_v.get())
-                    self.textlog.insert(
-                        INSERT, "No correct hardware bridge selected.\n", "error"
-                    )
-            find_flag = UART_S.find_MSP_COM()
+            find_flag = self.serial_spec.connect(UART_S)
             if find_flag:
                 self.textlog.insert(
                     INSERT, "Find MSP COM port:" + find_flag + "\n", "normal"
@@ -302,26 +251,9 @@ class Tkinter_app:
                 self.textlog.see(END)
                 UART_S.send_data(ser_port, self.connection_pack)
                 response_ = UART_S.read_data(ser_port, 1)
-                if self.xds_v.get() == "a":
-                    subprocess.run(
-                        self.path
-                        + "/common/uscif/dbgjtag.exe  -f @xds110 -Y gpiopins, config=0x1, write=0x0",
-                        shell=True,
-                        capture_output=True,
-                        encoding='utf-8')
-                else:
-                    if self.xds_v.get() == "b":
-                        subprocess.run(
-                            self.path
-                            + "/common/uscif/dbgjtag.exe -f @xds110 -Y gpiopins, config=0x3, write=0x01",
-                            shell=True,
-                            capture_output=True,
-                            encoding='utf-8')
-                # print(type(response))
-                # print(response)
+                self.serial_spec.on_connect()
                 UART_S.send_data(ser_port, b"\xbb")
                 response01 = UART_S.read_data(ser_port, 1)
-                #                print(response)
                 if response01 == "51":
                     self.textlog.insert(
                         INSERT, "MSPM0 is in BSL mode.\nGet device ID...\n", "normal"
