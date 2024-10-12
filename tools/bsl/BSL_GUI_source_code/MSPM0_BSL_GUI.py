@@ -29,6 +29,7 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
+
 import argparse
 import os
 import platform
@@ -43,11 +44,12 @@ from tkinter.filedialog import *
 from BSL_pack import *
 from crc_dialog import *
 from get_file import *
-from serial_spec import SerialSpec
+from serial_spec import *
 from txt_to_h import *
 from UART_send import *
 
 icon_root = "."
+
 
 class Tkinter_app:
     def __init__(self, master):
@@ -78,7 +80,11 @@ class Tkinter_app:
 
         self.log_scrollbar = Scrollbar(frame_log)
         self.textlog = Text(
-            frame_log, yscrollcommand=self.log_scrollbar.set, width=70, height=15, bg="white"
+            frame_log,
+            yscrollcommand=self.log_scrollbar.set,
+            width=70,
+            height=15,
+            bg="white",
         )
 
         self.fw_input_label = Label(frame_fw_input, text="Application firmware file:")
@@ -89,7 +95,9 @@ class Tkinter_app:
         self.fw_entry.insert(END, fw_loc)
         self.fw_entry.pack(side="left")
         fw_path_var.set(fw_loc)
-        self.fw_browse_button = Button(frame_fw_input, text="Choose .txt file", command=self.choose_app_file)
+        self.fw_browse_button = Button(
+            frame_fw_input, text="Choose .txt file", command=self.choose_app_file
+        )
         self.fw_browse_button.pack(side="left")
 
         self.pw_input_label = Label(frame_pw_input, text="Password file:")
@@ -99,7 +107,9 @@ class Tkinter_app:
         self.pw_entry = Entry(frame_pw_input, width=50, textvariable=pw_path_var)
         self.pw_entry.pack(side="left")
         pw_path_var.set(pw_loc)
-        self.pw_browse_button = Button(frame_pw_input, text="Choose .txt file", command=self.choose_pw_file)
+        self.pw_browse_button = Button(
+            frame_pw_input, text="Choose .txt file", command=self.choose_pw_file
+        )
         self.pw_browse_button.pack(side="left")
 
         global photo
@@ -108,10 +118,14 @@ class Tkinter_app:
         self.logo = Label(frame_logo, image=photo)
         self.logo.pack()
 
-        self.download_button = Button(frame_serial, text="Download", command=self.download_thread)
+        self.download_button = Button(
+            frame_serial, text="Download", command=self.download_thread
+        )
         self.download_button.pack()
 
-        self.download_button_label = Label(frame_serial, text="(Download: Just support UART with XDS110)")
+        self.download_button_label = Label(
+            frame_serial, text="(Download: Just support UART with XDS110)"
+        )
         self.download_button_label.pack()
 
         self.xds110_LP()
@@ -155,20 +169,10 @@ class Tkinter_app:
         self.path = os.getcwd()
 
     def xds110_LP(self):
-        self.serial_spec = SerialSpec(self.textlog, 0, "XDS110 Class Application/User UART")
-        self.textlog.config(state=NORMAL)
-        self.textlog.insert(
-            INSERT, "Changed the hardware bridge to XDS110 on Launchpad.\n", "normal"
-        )
-        self.textlog.config(state=DISABLED)
+        self.serial_spec = XdsLpSpec(self.textlog)
 
     def xds110_S(self):
-        self.serial_spec = SerialSpec(self.textlog, 1, "XDS110 Class Application/User UART")
-        self.textlog.config(state=NORMAL)
-        self.textlog.insert(
-            INSERT, "Changed the hardware bridge to standalone XDS110.\n", "normal"
-        )
-        self.textlog.config(state=DISABLED)
+        self.serial_spec = XdsStandaloneSpec(self.textlog)
 
     def xds110_BR(self):
         self.textlog.config(state=NORMAL)
@@ -192,7 +196,9 @@ class Tkinter_app:
         self.textlog.config(state=NORMAL)
         if os.path.exists(fw_path_var.get()):
             self.textlog.insert(
-                INSERT, "Choose a firmware file at:" + fw_path_var.get() + "\n", "normal"
+                INSERT,
+                "Choose a firmware file at:" + fw_path_var.get() + "\n",
+                "normal",
             )
             self.firmwaredfile = file_d.get_firmware(fw_path_var.get())
             self.firmware_pack = BSL_pack.firmware_pack(self.firmwaredfile)
@@ -217,7 +223,9 @@ class Tkinter_app:
         self.textlog.config(state=NORMAL)
         if os.path.exists(pw_path_var.get()):
             self.textlog.insert(
-                INSERT, "Choose a password file at:" + pw_path_var.get() + "\n", "normal"
+                INSERT,
+                "Choose a password file at:" + pw_path_var.get() + "\n",
+                "normal",
             )
             self.passwordfile = b""
             self.passwordfile = file_d.get_password(pw_path_var.get())
@@ -241,7 +249,7 @@ class Tkinter_app:
 
     def download(self):
         self.textlog.config(state=NORMAL)
-        self.download_button.config(state='disabled')
+        self.download_button.config(state="disabled")
         self.set_fw()
         self.set_password()
         if self.passwordfile != b"" and self.firmwaredfile != "":
@@ -339,7 +347,7 @@ class Tkinter_app:
             )
         self.textlog.see(END)
         self.textlog.config(state=DISABLED)
-        self.download_button.config(state='normal')
+        self.download_button.config(state="normal")
 
     def clear_text(self):
         self.textlog.config(state=NORMAL)
@@ -352,7 +360,13 @@ class Tkinter_app:
         #        self.textlog.config(state=NORMAL)
         if pack_ack == "00":
             flagg = 1
-            self.textlog.insert(INSERT, '[Firmware update on going...] Send firmware package ' + str(self.count) + ' successfully!\n', "normal")
+            self.textlog.insert(
+                INSERT,
+                "[Firmware update on going...] Send firmware package "
+                + str(self.count)
+                + " successfully!\n",
+                "normal",
+            )
         elif pack_ack == "51":
             self.textlog.insert(INSERT, "Error: Header incorrect!\n", "error")
         elif pack_ack == "52":
@@ -415,11 +429,11 @@ class Tkinter_app:
         print(path)
         # os.system(path + "/common/uscif/xds110/xdsdfu.exe -m")
         subprocess.run(
-            path
-            + "/common/uscif/xds110/xdsdfu.exe -m",
+            path + "/common/uscif/xds110/xdsdfu.exe -m",
             shell=True,
             capture_output=True,
-            encoding='utf-8')
+            encoding="utf-8",
+        )
         time.sleep(0.5)
         # print(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())))
         # os.system(
@@ -435,33 +449,43 @@ class Tkinter_app:
             + "/common/uscif/xds110/firmware_3.0.0.28.bin -r",
             shell=True,
             capture_output=True,
-            encoding='utf-8')
+            encoding="utf-8",
+        )
         # print(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())))
         time.sleep(2)
         self.textlog.insert(INSERT, "XDS110 firmware update finished.\n", "pass")
         self.textlog.see(END)
         self.textlog.config(state=DISABLED)
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="MSPM0 Bootloader GUI")
-    parser.add_argument('--icon-root', type=str, default=".", help='Root directory for runtime files')
-    parser.add_argument('--fw-loc', type=str, help='Firmware file location')
-    parser.add_argument('--pw-loc', type=str, help='Password file location')
+    parser.add_argument(
+        "--icon-root", type=str, default=".", help="Root directory for runtime files"
+    )
+    parser.add_argument("--fw-loc", type=str, help="Firmware file location")
+    parser.add_argument("--pw-loc", type=str, help="Password file location")
     args = parser.parse_args()
 
     icon_root = args.icon_root
 
-    if(os.path.exists(args.fw_loc)):
+    if os.path.exists(args.fw_loc):
         fw_loc = os.path.abspath(args.fw_loc)
 
-    if(os.path.exists(args.pw_loc)):
+    if os.path.exists(args.pw_loc):
         pw_loc = os.path.abspath(args.pw_loc)
 
     file_d = Get_files()
     BSL_pack = BSL_Pack()
     UART_S = UART_send()
     root = Tk()
-    root.iconbitmap(f"{icon_root}/imag/Capture.ico")
+
+    try:
+        root.iconbitmap(f"{icon_root}/imag/Capture.ico")
+    except Exception as e:
+        print(e)
+        print("If the file exists, it may not be supported on your system.")
+
     root.geometry("700x520+500+500")
     root.title("MSPM0 Bootloader GUI  v1.2")
     txt_to_h_dialog = TXT_to_h(root)

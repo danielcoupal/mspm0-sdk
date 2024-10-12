@@ -30,81 +30,105 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 '''
 
-from tkinter import INSERT
+from tkinter import NORMAL, DISABLED, INSERT
 
 import UART_send
 
 class SerialSpec():
     """Defines unique behavior depending on debugger or other serial setup."""
-    def __init__(self, textlog, id, serial_desc: str):
+    def __init__(self, textlog, serial_desc: str):
         self.textlog = textlog
-        self.id = id
         self.serial_desc = serial_desc # For when generic serial gets added. It will become a UART_S parameter.
 
     def connect(self, UART_S) -> str:
         """Connects to the serial port and configures the debugger if necessary."""
-        if self.id == "a":
-            try:
-                subprocess.run(
-                    self.path
-                    + "/common/uscif/dbgjtag.exe  -f @xds110 -Y gpiopins, config=0x1, write=0x1",
-                    shell=True,
-                    capture_output=True,
-                    encoding='utf-8')
-                subprocess.run(
-                    self.path
-                    + "/common/uscif/xds110/xds110reset.exe -d 1400",
-                    shell=True,
-                    capture_output=True,
-                    encoding='utf-8')
-            except:
-                self.textlog.insert(
-                    INSERT,
-                    "Error: please make sure the folder path not include !\n",
-                    "error",
-                )
-        else:
-            if self.id == "b":
-                subprocess.run(
-                    self.path
-                    + "/common/uscif/dbgjtag.exe -f @xds110 -Y power,supply=on,voltage=3.2",
-                    shell=True,
-                    capture_output=True,
-                    encoding='utf-8')
-                subprocess.run(
-                    self.path
-                    + "/common/uscif/dbgjtag.exe -f @xds110 -Y gpiopins, config=0x3, write=0x02",
-                    shell=True,
-                    capture_output=True,
-                    encoding='utf-8')
-                time.sleep(1.4)
-                subprocess.run(
-                    self.path
-                    + "/common/uscif/dbgjtag.exe -f @xds110 -Y gpiopins, config=0x3, write=0x03",
-                    shell=True,
-                    capture_output=True,
-                    encoding='utf-8')
-            else:
-                # print(self.id)
-                self.textlog.insert(
-                    INSERT, "No correct hardware bridge selected.\n", "error"
-                )
+        pass
+
+    def on_bsl_connect(self):
+        """Called after the BSL ACKS a 'connect' command."""
+        pass
+
+class XdsLpSpec(SerialSpec):
+    """Find and connect to the XDS LaunchPad debugger."""
+    def __init__(self, textlog):
+        super().__init__(textlog, "XDS110 Class Application/User UART")
+        self.textlog.config(state=NORMAL)
+        self.textlog.insert(
+            INSERT, "Changed the hardware bridge to XDS110 on Launchpad.\n", "normal"
+        )
+        self.textlog.config(state=DISABLED)
+
+    def connect(self, UART_S) -> str:
+        """Connects to the serial port and configures the debugger if necessary."""
+        try:
+            subprocess.run(
+                self.path
+                + "/common/uscif/dbgjtag.exe  -f @xds110 -Y gpiopins, config=0x1, write=0x1",
+                shell=True,
+                capture_output=True,
+                encoding='utf-8')
+            subprocess.run(
+                self.path
+                + "/common/uscif/xds110/xds110reset.exe -d 1400",
+                shell=True,
+                capture_output=True,
+                encoding='utf-8')
+        except:
+            self.textlog.insert(
+                INSERT,
+                "Error: please make sure the folder path not include !\n",
+                "error",
+            )
         return UART_S.find_MSP_COM()
 
     def on_bsl_connect(self):
         """Called after the BSL ACKS a 'connect' command."""
-        if self.id == "a":
-            subprocess.run(
-                self.path
-                + "/common/uscif/dbgjtag.exe  -f @xds110 -Y gpiopins, config=0x1, write=0x0",
-                shell=True,
-                capture_output=True,
-                encoding='utf-8')
-        else:
-            if self.id == "b":
-                subprocess.run(
-                    self.path
-                    + "/common/uscif/dbgjtag.exe -f @xds110 -Y gpiopins, config=0x3, write=0x01",
-                    shell=True,
-                    capture_output=True,
-                    encoding='utf-8')
+        subprocess.run(
+            self.path
+            + "/common/uscif/dbgjtag.exe  -f @xds110 -Y gpiopins, config=0x1, write=0x0",
+            shell=True,
+            capture_output=True,
+            encoding='utf-8')
+
+class XdsStandaloneSpec(SerialSpec):
+    """Find and connect to the XDS Standalone debugger."""
+    def __init__(self, textlog):
+        super().__init__(textlog, "XDS110 Class Application/User UART")
+        self.textlog.config(state=NORMAL)
+        self.textlog.insert(
+            INSERT, "Changed the hardware bridge to standalone XDS110.\n", "normal"
+        )
+        self.textlog.config(state=DISABLED)
+
+    def connect(self, UART_S) -> str:
+        """Connects to the serial port and configures the debugger if necessary."""
+        subprocess.run(
+            self.path
+            + "/common/uscif/dbgjtag.exe -f @xds110 -Y power,supply=on,voltage=3.2",
+            shell=True,
+            capture_output=True,
+            encoding='utf-8')
+        subprocess.run(
+            self.path
+            + "/common/uscif/dbgjtag.exe -f @xds110 -Y gpiopins, config=0x3, write=0x02",
+            shell=True,
+            capture_output=True,
+            encoding='utf-8')
+        time.sleep(1.4)
+        subprocess.run(
+            self.path
+            + "/common/uscif/dbgjtag.exe -f @xds110 -Y gpiopins, config=0x3, write=0x03",
+            shell=True,
+            capture_output=True,
+            encoding='utf-8')
+        return UART_S.find_MSP_COM()
+
+    def on_bsl_connect(self):
+        """Called after the BSL ACKS a 'connect' command."""
+        subprocess.run(
+            self.path
+            + "/common/uscif/dbgjtag.exe -f @xds110 -Y gpiopins, config=0x3, write=0x01",
+            shell=True,
+            capture_output=True,
+            encoding='utf-8')
+
