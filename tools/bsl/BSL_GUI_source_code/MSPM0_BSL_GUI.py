@@ -59,7 +59,7 @@ class Tkinter_app:
         menufile = Menu(menubar, tearoff=0)
         menubar.add_cascade(label="MoreOption", menu=menufile)
         #        menufile.add_command(label='Create Linker Files', command=self.create_linker)
-        menufile.add_command(label="TXT_to_H", command=self.txt_h)
+        menufile.add_command(label="TXT_to_H", command=txt_to_h_dialog.show)
         menufile.add_command(label="Update XDS110 firmware", command=self.update_xds110)
         menufile.add_command(label="Get_CRC", command=self.CRC_h)
         master["menu"] = menubar
@@ -77,7 +77,7 @@ class Tkinter_app:
         frame_logo = Frame(master)
         frame_logo.pack(side="bottom")
 
-        self.fw_input_label = Label(frame_app_input, text="Application firmware file:")
+        self.fw_input_label = Label(frame_fw_input, text="Application firmware file:")
         self.fw_input_label.pack(side="left")
         global input_name
         input_name = StringVar()
@@ -464,122 +464,6 @@ class Tkinter_app:
 
     #        self.textlog.config(state=DISABLED)
 
-    def txt_h(self):
-        sub_win1 = Toplevel(root)
-        sub_win1.title("TXT to H")
-        #        sub_win1.attributes("-topmost", True)
-        sub_win1.geometry("700x350+300+200")
-        sub_win1.grab_set()
-        frames_0 = Frame(sub_win1)
-        frames_0.pack(padx=50, pady=20, anchor=W)
-        frames_1 = Frame(sub_win1)
-        frames_1.pack(padx=50, anchor=W)
-        frames_3 = Frame(sub_win1)
-        frames_3.pack(pady=10)
-        frames_4 = Frame(sub_win1)
-        frames_4.pack()
-
-        self.labelss0 = Label(frames_0, text="Choose a firmware .txt file")
-        self.labelss0.pack(side="left")
-        global input_name_ss
-        input_name_ss = StringVar()
-        self.entryss = Entry(frames_0, width=50, textvariable=input_name_ss)
-        self.entryss.pack(side="left")
-        self.buttonss = Button(
-            frames_0, text="Choose .txt file", command=self.choosetxtfile
-        )
-        self.buttonss.pack(side="left")
-
-        self.labelss1 = Label(frames_1, text="Choose a ouput folder:")
-        self.labelss1.pack(side="left")
-        global out_name_ss
-        out_name_ss = StringVar()
-        self.entryss1 = Entry(frames_1, width=50, textvariable=out_name_ss)
-        self.entryss1.pack(side="left")
-        self.buttonss1 = Button(frames_1, text="Scan", command=self.choosefile_out)
-        self.buttonss1.pack(side="left")
-
-        self.buttonss2 = Button(frames_3, text="Convert", command=self.convert_)
-        self.buttonss2.pack()
-
-        self.s3 = Scrollbar(frames_4)
-        self.s3.pack(side=RIGHT, fill=Y)
-        self.textlogsubs = Text(
-            frames_4, yscrollcommand=self.s3.set, width=70, height=10, bg="white"
-        )
-        self.s3.config(command=self.textlogsubs.yview)
-        self.textlogsubs.pack()
-        self.textlogsubs.tag_config("errors_", foreground="red")
-        self.textlogsubs.tag_config("pass_s_", foreground="green")
-        self.textlogsubs.insert(
-            INSERT, "This function is used for the situation that using MCU as host.\n"
-        )
-        self.textlogsubs.insert(
-            INSERT, "The output header file is used for host MCU.\n"
-        )
-        self.textlogsubs.config(state=DISABLED)
-
-    def choosetxtfile(self):
-        fs = askopenfilename(
-            title="Choose a firmware file",
-            initialdir="c:",
-            filetypes=[("textfile", ".txt")],
-        )
-        input_name_ss.set(fs)
-        self.textlogsubs.config(state=NORMAL)
-        if fs:
-            self.textlogsubs.insert(
-                INSERT, "Choose a firmware file at:" + fs + "\n", "normal"
-            )
-        else:
-            self.textlogsubs.insert(
-                INSERT, "Error: Please choose a firmware file.\n", "errors_"
-            )
-        self.textlogsubs.see(END)
-        self.textlogsubs.config(state=DISABLED)
-
-    def choosefile_out(self):
-        f3 = askdirectory()
-        out_name_ss.set(f3)
-        self.textlogsubs.config(state=NORMAL)
-        if f3:
-            self.textlogsubs.insert(INSERT, "Choose a output folder:" + f3 + "\n")
-        else:
-            self.textlogsubs.insert(
-                INSERT, "Error: Please choose a output folder.\n", "errors_"
-            )
-        self.textlogsubs.see(END)
-        self.textlogsubs.config(state=DISABLED)
-
-    def convert_(self):
-        self.textlogsubs.config(state=NORMAL)
-        input_names = input_name_ss.get()
-        output_paths = out_name_ss.get()
-        if input_names:
-            if output_paths:
-                self.textlogsubs.insert(INSERT, "Converting...\n")
-                name_file = input_names.split("/")[-1]
-                name_file2 = name_file.split(".")[0]
-                output_paths_n = output_paths + "/" + name_file2 + ".h"
-                Conver_F.conver_fun(input_names, output_paths_n)
-                self.textlogsubs.insert(
-                    INSERT,
-                    "-----Convert the firmware to header file named "
-                    + name_file2
-                    + ".h!----\n ",
-                    "pass_s_",
-                )
-            else:
-                self.textlogsubs.insert(
-                    INSERT, "Error: Please choose a output folder.\n", "errors_"
-                )
-        else:
-            self.textlogsubs.insert(
-                INSERT, "Error: Please choose a .txt firmware.\n", "errors_"
-            )
-        self.textlogsubs.see(END)
-        self.textlogsubs.config(state=DISABLED)
-
     def update_xds110(self):
         self.textlog.config(state=NORMAL)
         self.textlog.insert(
@@ -799,10 +683,10 @@ if __name__ == "__main__":
     file_d = Get_files()
     BSL_pack = BSL_Pack()
     UART_S = UART_send()
-    Conver_F = TXT_to_h()
     root = Tk()
     root.iconbitmap(f"{icon_root}/imag/Capture.ico")
     root.geometry("700x520+500+500")
     root.title("MSPM0 Bootloader GUI  v1.2")
+    txt_to_h_dialog = TXT_to_h(root)
     app = Tkinter_app(root)
     root.mainloop()
