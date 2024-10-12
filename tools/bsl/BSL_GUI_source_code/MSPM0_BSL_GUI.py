@@ -29,6 +29,8 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
+import argparse
+
 import tkinter
 from tkinter import *
 from tkinter.filedialog import *
@@ -42,6 +44,8 @@ from txt_to_h import *
 import threading
 import subprocess
 from subprocess import run
+
+icon_root = "."
 
 class Tkinter_app:
     def __init__(self, master):
@@ -60,88 +64,77 @@ class Tkinter_app:
         menufile.add_command(label="Get_CRC", command=self.CRC_h)
         master["menu"] = menubar
 
-        # menubar.config(bg='red')
-        #   menubar.pack()
+        frame_fw_input = Frame(master)
+        frame_fw_input.pack(padx=50, pady=20, anchor=E)
+        frame_pw_input = Frame(master)
+        frame_pw_input.pack(padx=50, anchor=E)
+        frame_serial = Frame(master)
+        frame_serial.pack(pady=10, fill=X)
+        frame_log = Frame(master)
+        frame_log.pack()
+        frame_clear = Frame(master)
+        frame_clear.pack()
+        frame_logo = Frame(master)
+        frame_logo.pack(side="bottom")
 
-        # variable = StringVar(master)
-        # variable.set("one")  # default value
-        # w = OptionMenu(master, variable, "one", "two", "three")
-        # w.config(bg="gray")  # Set background color to green
-        # w.pack()
-
-        frame0 = Frame(master)
-        frame0.pack(padx=50, pady=20, anchor=E)
-        frame1 = Frame(master)
-        frame1.pack(padx=50, anchor=E)
-        frame3 = Frame(master)
-        frame3.pack(pady=10, fill=X)
-        frame4 = Frame(master)
-        frame4.pack()
-        frame5 = Frame(master)
-        frame5.pack()
-        # frame6 = Frame(master)
-        # frame6.pack(padx=1, pady=20, anchor=E)
-        frame2 = Frame(master)
-        frame2.pack(side="bottom")
-
-        self.label0 = Label(frame0, text="Application firmware file:")
-        self.label0.pack(side="left")
+        self.fw_input_label = Label(frame_app_input, text="Application firmware file:")
+        self.fw_input_label.pack(side="left")
         global input_name
         input_name = StringVar()
-        self.entry = Entry(frame0, width=50, textvariable=input_name)
-        self.entry.pack(side="left")
-        self.button = Button(frame0, text="Choose .txt file", command=self.choosefile)
-        self.button.pack(side="left")
+        self.fw_entry = Entry(frame_fw_input, width=50, textvariable=input_name)
+        self.fw_entry.pack(side="left")
+        self.fw_browse_button = Button(frame_fw_input, text="Choose .txt file", command=self.choose_app_file)
+        self.fw_browse_button.pack(side="left")
 
-        self.label1 = Label(frame1, text="Password file:")
-        self.label1.pack(side="left")
-        global input_name1
-        input_name1 = StringVar()
-        self.entry1 = Entry(frame1, width=50, textvariable=input_name1)
-        self.entry1.pack(side="left")
-        self.button1 = Button(frame1, text="Choose .txt file", command=self.choosefile1)
-        self.button1.pack(side="left")
+        self.pw_input_label = Label(frame_pw_input, text="Password file:")
+        self.pw_input_label.pack(side="left")
+        global input_pw
+        input_pw = StringVar()
+        self.pw_entry = Entry(frame_pw_input, width=50, textvariable=input_pw)
+        self.pw_entry.pack(side="left")
+        self.pw_browse_button = Button(frame_pw_input, text="Choose .txt file", command=self.choose_pw_file)
+        self.pw_browse_button.pack(side="left")
 
         global photo
         #        photo = PhotoImage(file=SETUP_DIR + "\imag\oi.GIF")
-        photo = PhotoImage(file="imag\oi.GIF")
-        self.label2 = Label(frame2, image=photo)
-        self.label2.pack()
+        photo = PhotoImage(file=f"{icon_root}/imag/oi.GIF")
+        self.logo = Label(frame_logo, image=photo)
+        self.logo.pack()
 
-        self.button3 = Button(frame3, text="Download", command=self.downlaod_thread)
-        self.button3.pack()
+        self.download_button = Button(frame_serial, text="Download", command=self.download_thread)
+        self.download_button.pack()
 
-        self.label3 = Label(frame3, text="(Download: Just support UART with XDS110)")
-        self.label3.pack()
+        self.download_button_label = Label(frame_serial, text="(Download: Just support UART with XDS110)")
+        self.download_button_label.pack()
 
-        self.rad_button = Radiobutton(
-            frame3,
+        self.xds_lp_radio = Radiobutton(
+            frame_serial,
             text="XDS110 on Launchpad",
             variable=self.xds_v,
             value="a",
             command=self.xds110_LP,
         )
-        self.rad_button.place(relx=0.7, rely=0)
-        self.rad_button2 = Radiobutton(
-            frame3,
+        self.xds_lp_radio.place(relx=0.7, rely=0)
+        self.xds_sa_radio = Radiobutton(
+            frame_serial,
             text="Standalone XDS110",
             variable=self.xds_v,
             value="b",
             command=self.xds110_S,
         )
-        self.rad_button2.place(relx=0.7, rely=0.5)
+        self.xds_sa_radio.place(relx=0.7, rely=0.5)
 
         # self.rad_button3 = Radiobutton(frame3, text='BOOTRST', variable=self.xds_r, value='1', command=self.xds110_BR)
         # self.rad_button3.place(relx=0.1,rely=0)
         # self.rad_button4 = Radiobutton(frame3, text='POR', variable=self.xds_r, value='2', command=self.xds110_PR)
         # self.rad_button4.place(relx=0.1,rely=0.5)
 
-        self.s1 = Scrollbar(frame4)
-        self.s1.pack(side=RIGHT, fill=Y)
+        self.log_scrollbar = Scrollbar(frame_log)
+        self.log_scrollbar.pack(side=RIGHT, fill=Y)
         self.textlog = Text(
-            frame4, yscrollcommand=self.s1.set, width=70, height=15, bg="white"
+            frame_log, yscrollcommand=self.log_scrollbar.set, width=70, height=15, bg="white"
         )
-        self.s1.config(command=self.textlog.yview)
+        self.log_scrollbar.config(command=self.textlog.yview)
         self.textlog.pack()
 
         self.textlog.insert(INSERT, "Default hardware is XDS110 on Launchpad.\n")
@@ -152,8 +145,8 @@ class Tkinter_app:
         self.textlog.tag_config("normal", foreground="black")
         self.textlog.config(state=DISABLED)
 
-        self.button_c = Button(frame5, text="Clear", command=self.clear_text)
-        self.button_c.pack()
+        self.clear_button = Button(frame_clear, text="Clear", command=self.clear_text)
+        self.clear_button.pack()
 
         self.connection_pack = BSL_pack.connection_pack()
         self.get_ID_pack = BSL_pack.get_ID_pack()
@@ -187,7 +180,7 @@ class Tkinter_app:
         self.textlog.insert(INSERT, "Changed reset type to power on reset.\n", "normal")
         self.textlog.config(state=DISABLED)
 
-    def choosefile(self):
+    def choose_app_file(self):
         f = askopenfilename(
             title="Choose a firmware file",
             initialdir="c:",
@@ -210,13 +203,13 @@ class Tkinter_app:
         self.textlog.see(END)
         self.textlog.config(state=DISABLED)
 
-    def choosefile1(self):
+    def choose_pw_file(self):
         f1 = askopenfilename(
             title="Choose a password file",
             initialdir="c:",
             filetypes=[("textfile", ".txt")],
         )
-        input_name1.set(f1)
+        input_pw.set(f1)
         self.textlog.config(state=NORMAL)
         if f1:
             self.textlog.insert(
@@ -240,12 +233,12 @@ class Tkinter_app:
         #     print(self.passwordfile)
         self.textlog.see(END)
         self.textlog.config(state=DISABLED)
-    def downlaod_thread(self):
+    def download_thread(self):
         T = threading.Thread(target=self.download, args=())
         T.start()
     def download(self):
         self.textlog.config(state=NORMAL)
-        self.button3.config(state='disabled')
+        self.download_button.config(state='disabled')
         if self.passwordfile != b"" and self.firmwaredfile != "":
             if self.xds_v.get() == "a":
                 try:
@@ -404,7 +397,7 @@ class Tkinter_app:
             )
         self.textlog.see(END)
         self.textlog.config(state=DISABLED)
-        self.button3.config(state='normal')
+        self.download_button.config(state='normal')
 
     def clear_text(self):
         self.textlog.config(state=NORMAL)
@@ -798,12 +791,17 @@ class Tkinter_app:
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="MSPM0 Bootloader GUI")
+    parser.add_argument('--icon-root', type=str, default=".", help='Root directory for runtime files')
+    args = parser.parse_args()
+    icon_root = args.icon_root
+
     file_d = Get_files()
     BSL_pack = BSL_Pack()
     UART_S = UART_send()
     Conver_F = TXT_to_h()
     root = Tk()
-    root.iconbitmap("imag/Capture.ico")
+    root.iconbitmap(f"{icon_root}/imag/Capture.ico")
     root.geometry("700x520+500+500")
     root.title("MSPM0 Bootloader GUI  v1.2")
     app = Tkinter_app(root)
