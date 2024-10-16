@@ -67,26 +67,6 @@ class Tkinter_app:
 
         frame_fw_input = Frame(master)
         frame_fw_input.pack(padx=50, pady=20, anchor=E)
-        frame_pw_input = Frame(master)
-        frame_pw_input.pack(padx=50, anchor=E)
-        frame_serial = Frame(master)
-        frame_serial.pack(pady=10, fill=X)
-        frame_log = Frame(master)
-        frame_log.pack()
-        frame_clear = Frame(master)
-        frame_clear.pack()
-        frame_logo = Frame(master)
-        frame_logo.pack(side="bottom")
-
-        self.log_scrollbar = Scrollbar(frame_log)
-        self.textlog = Text(
-            frame_log,
-            yscrollcommand=self.log_scrollbar.set,
-            width=70,
-            height=15,
-            bg="white",
-        )
-
         self.fw_input_label = Label(frame_fw_input, text="Application firmware file:")
         self.fw_input_label.pack(side="left")
         global fw_path_var
@@ -100,6 +80,8 @@ class Tkinter_app:
         )
         self.fw_browse_button.pack(side="left")
 
+        frame_pw_input = Frame(master)
+        frame_pw_input.pack(padx=50, anchor=E)
         self.pw_input_label = Label(frame_pw_input, text="Password file:")
         self.pw_input_label.pack(side="left")
         global pw_path_var
@@ -112,41 +94,63 @@ class Tkinter_app:
         )
         self.pw_browse_button.pack(side="left")
 
-        global photo
-        #        photo = PhotoImage(file=SETUP_DIR + "\imag\oi.GIF")
-        photo = PhotoImage(file=f"{icon_root}/imag/oi.GIF")
-        self.logo = Label(frame_logo, image=photo)
-        self.logo.pack()
+        frame_serial = Frame(master, borderwidth=1, relief=FLAT)
+        frame_serial.pack(pady=10, padx=50, fill=BOTH, expand=True)
+
+        frame_serial_radio = Frame(frame_serial, borderwidth=1, relief=RIDGE)
+        frame_serial_radio.pack(side=LEFT, anchor=W, padx=20)
+
+        self.serial_spec_idx = IntVar()
+        self.xds_lp_radio = Radiobutton(
+            frame_serial_radio,
+            text="XDS110 on Launchpad",
+            variable=self.serial_spec_idx,
+            value=0,
+            command=self.on_select_xds110_lp,
+        )
+        self.xds_lp_radio.pack(anchor=W)
+        self.xds_sa_radio = Radiobutton(
+            frame_serial_radio,
+            text="Standalone XDS110",
+            variable=self.serial_spec_idx,
+            value=1,
+            command=self.on_select_xds110_s,
+        )
+        self.xds_sa_radio.pack(anchor=W)
+        self.other_serial_radio = Radiobutton(
+            frame_serial_radio,
+            text="Other serial port",
+            variable=self.serial_spec_idx,
+            value=2,
+            command=self.on_select_other_serial,
+        )
+        self.other_serial_radio.pack(anchor=W)
+
+        frame_options_by_connection = Frame(frame_serial)
+        frame_options_by_connection.pack(side=LEFT, anchor=CENTER, fill=X, expand=True)
+        self.uart = UART_S
+        self.options = UART_S.get_port_name_list()
+        self.port_selection = StringVar()
+        self.other_serial_ddl = OptionMenu(
+            frame_options_by_connection, self.port_selection,  "Select a serial port", *self.options, command=self.on_select_other_serial
+        )
+        self.other_serial_ddl.pack(anchor=CENTER, pady=5, fill=X, expand=True)
 
         self.download_button = Button(
             frame_serial, text="Download", command=self.download_thread
         )
-        self.download_button.pack()
+        self.download_button.pack(side=RIGHT, padx=10, anchor=E)
 
-        self.download_button_label = Label(
-            frame_serial, text="(Download: Just support UART with XDS110)"
+        frame_log = Frame(master)
+        frame_log.pack()
+        self.log_scrollbar = Scrollbar(frame_log)
+        self.textlog = Text(
+            frame_log,
+            yscrollcommand=self.log_scrollbar.set,
+            width=70,
+            height=15,
+            bg="white",
         )
-        self.download_button_label.pack()
-
-        self.xds110_LP()
-        self.serial_spec_idx = IntVar()
-        self.xds_lp_radio = Radiobutton(
-            frame_serial,
-            text="XDS110 on Launchpad",
-            variable=self.serial_spec_idx,
-            value=0,
-            command=self.xds110_LP,
-        )
-        self.xds_lp_radio.place(relx=0.7, rely=0)
-        self.xds_sa_radio = Radiobutton(
-            frame_serial,
-            text="Standalone XDS110",
-            variable=self.serial_spec_idx,
-            value=1,
-            command=self.xds110_S,
-        )
-        self.xds_sa_radio.place(relx=0.7, rely=0.5)
-
         self.log_scrollbar.pack(side=RIGHT, fill=Y)
         self.log_scrollbar.config(command=self.textlog.yview)
         self.textlog.pack()
@@ -157,8 +161,18 @@ class Tkinter_app:
         self.textlog.tag_config("normal", foreground="black")
         self.textlog.config(state=DISABLED)
 
+        frame_clear = Frame(master)
+        frame_clear.pack()
         self.clear_button = Button(frame_clear, text="Clear", command=self.clear_text)
         self.clear_button.pack()
+
+        frame_logo = Frame(master)
+        frame_logo.pack(side="bottom")
+
+        global photo
+        photo = PhotoImage(file=f"{icon_root}/imag/oi.GIF")
+        self.logo = Label(frame_logo, image=photo)
+        self.logo.pack()
 
         self.connection_pack = BSL_pack.connection_pack()
         self.get_ID_pack = BSL_pack.get_ID_pack()
@@ -168,11 +182,20 @@ class Tkinter_app:
         self.start_app_pack = BSL_pack.start_app_pack()
         self.path = os.getcwd()
 
-    def xds110_LP(self):
+
+        self.on_select_xds110_lp()
+
+    def on_select_xds110_lp(self):
+        self.other_serial_ddl.config(state=DISABLED)
         self.serial_spec = XdsLpSpec(self.textlog)
 
-    def xds110_S(self):
+    def on_select_xds110_s(self):
+        self.other_serial_ddl.config(state=DISABLED)
         self.serial_spec = XdsStandaloneSpec(self.textlog)
+
+    def on_select_other_serial(self, serial_desc=""):
+        self.other_serial_ddl.config(state=NORMAL)
+        self.serial_spec = SerialSpec(self.textlog, serial_desc)
 
     def xds110_BR(self):
         self.textlog.config(state=NORMAL)
@@ -380,14 +403,12 @@ class Tkinter_app:
         elif pack_ack == "56":
             self.textlog.insert(INSERT, "Error: Unknown baud rate!\n", "error")
         else:
-            self.textlog.insert(INSERT, "Error: Unknow else error!\n", "error")
-        #       self.textlog.config(state=DISABLED)
+            self.textlog.insert(INSERT, "Error: Unknown else error!\n", "error")
         self.textlog.see(END)
         return flagg
 
     def check_reponse(self, pack_res):
         flagg = 0
-        #       self.textlog.config(state=NORMAL)
         if pack_res == "00":
             flagg = 1
             self.textlog.insert(INSERT, "Operation success!\n", "normal")
@@ -486,7 +507,7 @@ if __name__ == "__main__":
         print(e)
         print("If the file exists, it may not be supported on your system.")
 
-    root.geometry("700x520+500+500")
+    root.geometry("700x600+500+500")
     root.title("MSPM0 Bootloader GUI  v1.2")
     txt_to_h_dialog = TXT_to_h(root)
     app = Tkinter_app(root)

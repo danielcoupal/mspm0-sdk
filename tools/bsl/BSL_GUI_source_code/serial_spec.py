@@ -42,7 +42,7 @@ class SerialSpec():
 
     def connect(self, UART_S) -> str:
         """Connects to the serial port and configures the debugger if necessary."""
-        pass
+        return UART_S.find_MSP_COM(self.serial_desc)
 
     def on_bsl_connect(self):
         """Called after the BSL ACKS a 'connect' command."""
@@ -79,7 +79,7 @@ class XdsLpSpec(SerialSpec):
                 "Error: please make sure the folder path not include !\n",
                 "error",
             )
-        return UART_S.find_MSP_COM()
+        return super.connect(UART_S)
 
     def on_bsl_connect(self):
         """Called after the BSL ACKS a 'connect' command."""
@@ -121,7 +121,7 @@ class XdsStandaloneSpec(SerialSpec):
             shell=True,
             capture_output=True,
             encoding='utf-8')
-        return UART_S.find_MSP_COM()
+        return super.connect(UART_S)
 
     def on_bsl_connect(self):
         """Called after the BSL ACKS a 'connect' command."""
@@ -131,4 +131,3 @@ class XdsStandaloneSpec(SerialSpec):
             shell=True,
             capture_output=True,
             encoding='utf-8')
-
