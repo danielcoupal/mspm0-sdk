@@ -38,7 +38,7 @@ class SerialSpec():
     """Defines unique behavior depending on debugger or other serial setup."""
     def __init__(self, textlog, serial_desc: str):
         self.textlog = textlog
-        self.serial_desc = serial_desc # For when generic serial gets added. It will become a UART_S parameter.
+        self.serial_desc = serial_desc
 
     def connect(self, UART_S) -> str:
         """Connects to the serial port and configures the debugger if necessary."""
@@ -79,7 +79,7 @@ class XdsLpSpec(SerialSpec):
                 "Error: please make sure the folder path not include !\n",
                 "error",
             )
-        return super.connect(UART_S)
+        return super().connect(UART_S)
 
     def on_bsl_connect(self):
         """Called after the BSL ACKS a 'connect' command."""
@@ -121,7 +121,7 @@ class XdsStandaloneSpec(SerialSpec):
             shell=True,
             capture_output=True,
             encoding='utf-8')
-        return super.connect(UART_S)
+        return super().connect(UART_S)
 
     def on_bsl_connect(self):
         """Called after the BSL ACKS a 'connect' command."""
@@ -131,3 +131,21 @@ class XdsStandaloneSpec(SerialSpec):
             shell=True,
             capture_output=True,
             encoding='utf-8')
+
+class OtherSerialSpec(SerialSpec):
+    """Defines unique behavior depending on debugger or other serial setup."""
+    def __init__(self, textlog, serial_desc: str):
+        super().__init__(textlog, serial_desc)
+        self.textlog.config(state=NORMAL)
+        self.textlog.insert(
+            INSERT, "Select a serial port in the drop down list.\n", "normal"
+        )
+        self.textlog.config(state=DISABLED)
+
+    def connect(self, UART_S) -> str:
+        """Connects to the serial port and configures the debugger if necessary."""
+        return super().connect(UART_S)
+
+    def on_bsl_connect(self):
+        """Called after the BSL ACKS a 'connect' command."""
+        super().on_bsl_connect()

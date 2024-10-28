@@ -52,10 +52,10 @@ icon_root = "."
 
 
 class Tkinter_app:
-    def __init__(self, master):
+    def __init__(self, master, verbose=False):
         self.passwordfile = b""
         self.count = 0
-        self.firmwaredfile = ""
+        self.firmwarefile = ""
 
         menubar = Menu(master, tearoff=0)
         menufile = Menu(menubar, tearoff=0)
@@ -155,7 +155,6 @@ class Tkinter_app:
         self.log_scrollbar.config(command=self.textlog.yview)
         self.textlog.pack()
 
-        self.textlog.insert(INSERT, "Default hardware is XDS110 on Launchpad.\n")
         self.textlog.tag_config("error", foreground="red")
         self.textlog.tag_config("pass", foreground="green")
         self.textlog.tag_config("normal", foreground="black")
@@ -182,7 +181,8 @@ class Tkinter_app:
         self.start_app_pack = BSL_pack.start_app_pack()
         self.path = os.getcwd()
 
-
+        if(verbose):
+            UART_S.set_debug_textbox(self.textlog)
         self.on_select_xds110_lp()
 
     def on_select_xds110_lp(self):
@@ -195,7 +195,7 @@ class Tkinter_app:
 
     def on_select_other_serial(self, serial_desc=""):
         self.other_serial_ddl.config(state=NORMAL)
-        self.serial_spec = SerialSpec(self.textlog, serial_desc)
+        self.serial_spec = OtherSerialSpec(self.textlog, serial_desc)
 
     def xds110_BR(self):
         self.textlog.config(state=NORMAL)
@@ -223,13 +223,13 @@ class Tkinter_app:
                 "Choose a firmware file at:" + fw_path_var.get() + "\n",
                 "normal",
             )
-            self.firmwaredfile = file_d.get_firmware(fw_path_var.get())
-            self.firmware_pack = BSL_pack.firmware_pack(self.firmwaredfile)
+            self.firmwarefile = file_d.get_firmware(fw_path_var.get())
+            self.firmware_pack = BSL_pack.firmware_pack(self.firmwarefile)
         else:
             self.textlog.insert(
                 INSERT, "Error: Please choose a firmware file.\n", "error"
             )
-            self.firmwaredfile = ""
+            self.firmwarefile = ""
             self.firmware_pack = b""
         self.textlog.see(END)
         self.textlog.config(state=DISABLED)
@@ -271,11 +271,11 @@ class Tkinter_app:
         T.start()
 
     def download(self):
-        self.textlog.config(state=NORMAL)
         self.download_button.config(state="disabled")
         self.set_fw()
         self.set_password()
-        if self.passwordfile != b"" and self.firmwaredfile != "":
+        self.textlog.config(state=NORMAL)
+        if self.passwordfile != b"" and self.firmwarefile != "":
             find_flag = self.serial_spec.connect(UART_S)
             if find_flag:
                 self.textlog.insert(
@@ -292,7 +292,7 @@ class Tkinter_app:
                 UART_S.send_data(ser_port, self.connection_pack)
                 response_ = UART_S.read_data(ser_port, 1)
                 self.serial_spec.on_bsl_connect()
-                UART_S.send_data(ser_port, b"\xbb")
+                UART_S.send_data(ser_port, b"\xbb") # Deliberately send an invalid command. BSL returns 0x51, which confirms BSL is active, not an application. (My best guess why this is done. -DC)
                 response01 = UART_S.read_data(ser_port, 1)
                 if response01 == "51":
                     self.textlog.insert(
@@ -309,7 +309,6 @@ class Tkinter_app:
                     if check:
                         response2 = UART_S.read_data(ser_port, 9)
                         check2 = self.check_reponse(response2[8:10])
-                        # print(response2[8:10])
                         if check2:
                             self.textlog.insert(INSERT, "Mass erase...\n", "normal")
                             self.textlog.see(END)
@@ -320,8 +319,6 @@ class Tkinter_app:
                                 INSERT, "Send the firmware...\n", "normal"
                             )
                             self.textlog.see(END)
-                            # print(type(firmware_pack))
-                            # print(firmware_pack)
                             for list_code in self.firmware_pack:
                                 UART_S.send_data(ser_port, list_code)
                                 response3 = UART_S.read_data(ser_port, 1)
@@ -435,7 +432,7 @@ class Tkinter_app:
                 INSERT, "Error: Factory reset password error!\n", "error"
             )
         else:
-            self.textlog.insert(INSERT, "Error: Unknow else error!\n", "error")
+            self.textlog.insert(INSERT, "Error: Unknown else error!\n", "error")
         self.textlog.see(END)
         return flagg
 
@@ -486,6 +483,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--fw-loc", type=str, help="Firmware file location")
     parser.add_argument("--pw-loc", type=str, help="Password file location")
+    parser.add_argument("--verbose", action='store_true', help="Add extra information in log")
     args = parser.parse_args()
 
     icon_root = args.icon_root
@@ -510,5 +508,5 @@ if __name__ == "__main__":
     root.geometry("700x600+500+500")
     root.title("MSPM0 Bootloader GUI  v1.2")
     txt_to_h_dialog = TXT_to_h(root)
-    app = Tkinter_app(root)
+    app = Tkinter_app(root, verbose=args.verbose)
     root.mainloop()

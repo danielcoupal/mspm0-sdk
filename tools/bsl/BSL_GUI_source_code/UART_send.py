@@ -29,13 +29,21 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 '''
+
+import tkinter
 import serial
 import serial.tools.list_ports
 import struct
 
 class UART_send():
+
+    debug_textbox: tkinter.Text = None
+
     def __init__(self):
         pass
+
+    def set_debug_textbox(self, textbox):
+        self.debug_textbox = textbox
 
     def get_port_name_list(self):
         return list(map(lambda port: port.name, list(serial.tools.list_ports.comports())))
@@ -47,20 +55,15 @@ class UART_send():
             flag = 0
         else:
             for i in range(0, len(port_list)):
-                #        print(port_list[i])
                 buffer = list(port_list[i])
                 buffer1 = buffer[1]
-                #        print(buffer1)
-                #        print(type(buffer1))
                 if buffer1.find(port_id) >= 0:
                     flag = 1
                     break
         if flag:
-            #            print("Find the COM port: " + buffer[0])
             return buffer[0]
         else:
             return ''
-    #            sys.exit(0)
 
     def config_uart(self, com):
         ser = serial.Serial(
@@ -75,8 +78,18 @@ class UART_send():
             dsrdtr=False,
         )
         return ser
-    def send_data(self, serr,data):
+
+    def send_data(self, serr, data):
+        # FIXME If more bytes are sent than advertised, the device will send an
+        # ACK while being in error (extra bytes expected as headers).
         serr.write(data)
-    def read_data(self, serr ,num):
+        if(self.debug_textbox):
+            self.debug_textbox.insert('insert', "Sent: " + data.hex() + "\n")
+            self.debug_textbox.see("end")
+
+    def read_data(self, serr, num):
         bsl_pack_ack = serr.read(num).hex()
+        if(self.debug_textbox):
+            self.debug_textbox.insert('insert', "Received: " + bsl_pack_ack + "\n")
+            self.debug_textbox.see("end")
         return bsl_pack_ack
