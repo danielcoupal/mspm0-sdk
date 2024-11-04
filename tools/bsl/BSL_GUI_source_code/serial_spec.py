@@ -33,6 +33,8 @@
 from tkinter import NORMAL, DISABLED, INSERT
 
 import UART_send
+import os
+import subprocess
 
 class SerialSpec():
     """Defines unique behavior depending on debugger or other serial setup."""
@@ -62,13 +64,13 @@ class XdsLpSpec(SerialSpec):
         """Connects to the serial port and configures the debugger if necessary."""
         try:
             subprocess.run(
-                self.path
+                os.getcwd()
                 + "/common/uscif/dbgjtag.exe  -f @xds110 -Y gpiopins, config=0x1, write=0x1",
                 shell=True,
                 capture_output=True,
                 encoding='utf-8')
             subprocess.run(
-                self.path
+                os.getcwd()
                 + "/common/uscif/xds110/xds110reset.exe -d 1400",
                 shell=True,
                 capture_output=True,
@@ -84,7 +86,7 @@ class XdsLpSpec(SerialSpec):
     def on_bsl_connect(self):
         """Called after the BSL ACKS a 'connect' command."""
         subprocess.run(
-            self.path
+            os.getcwd()
             + "/common/uscif/dbgjtag.exe  -f @xds110 -Y gpiopins, config=0x1, write=0x0",
             shell=True,
             capture_output=True,
@@ -103,20 +105,20 @@ class XdsStandaloneSpec(SerialSpec):
     def connect(self, UART_S) -> str:
         """Connects to the serial port and configures the debugger if necessary."""
         subprocess.run(
-            self.path
+            os.getcwd()
             + "/common/uscif/dbgjtag.exe -f @xds110 -Y power,supply=on,voltage=3.2",
             shell=True,
             capture_output=True,
             encoding='utf-8')
         subprocess.run(
-            self.path
+            os.getcwd()
             + "/common/uscif/dbgjtag.exe -f @xds110 -Y gpiopins, config=0x3, write=0x02",
             shell=True,
             capture_output=True,
             encoding='utf-8')
         time.sleep(1.4)
         subprocess.run(
-            self.path
+            os.getcwd()
             + "/common/uscif/dbgjtag.exe -f @xds110 -Y gpiopins, config=0x3, write=0x03",
             shell=True,
             capture_output=True,
@@ -126,7 +128,7 @@ class XdsStandaloneSpec(SerialSpec):
     def on_bsl_connect(self):
         """Called after the BSL ACKS a 'connect' command."""
         subprocess.run(
-            self.path
+            os.getcwd()
             + "/common/uscif/dbgjtag.exe -f @xds110 -Y gpiopins, config=0x3, write=0x01",
             shell=True,
             capture_output=True,
